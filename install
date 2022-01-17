@@ -1,0 +1,132 @@
+#!/bin/zsh
+
+# Prompt for sudo password at the beginning of the script.
+#
+sudo echo '' > /dev/null
+
+# Install brew
+#
+if ! command -v brew > /dev/null; then
+  echo "Installing homebrew"
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+
+# Install Kitty
+echo -e "\nInstalling Kitty"
+if brew list --cask -1 | grep kitty &> /dev/null; then
+  printf "Kitty already installed, reinstall? [y/n] "
+  read -q ANSWER 
+  echo ""
+
+  [ -e /Applications/Kitty.app ] && rm -rf /Applications/Kitty.app
+  [ -e /Applications/Terminal.app ] && rm -rf /Applications/Terminal.app
+
+  if [ "$ANSWER" = "y" ]; then
+    echo ""
+    brew reinstall --cask kitty
+  fi
+else
+  echo ""
+  brew install --cask kitty
+fi
+
+# Kitty.app will now start, macOS will ask if this app is safe.
+#
+if [ -e /Applications/Kitty.app ] || [ ! -e /Applications/Terminal.app ] ; then
+  printf "\nRename Kitty.app to Terminal.app [y/n] "
+  read -q ANSWER
+  echo ""
+
+  if [ "$ANSWER" = "y" ]; then
+    echo "\nFirst we need to tell macOS that kitty.app is safe"
+    echo "Kitty will now start in a new application window"
+    echo " - Accept the macOS warning that Kitty was downloaded from the internet"
+    echo " - Then quit Kitty to proceed with patching"
+    open -g -W /Applications/kitty.app
+
+    echo -e "\nPatching Kitty.app"
+    echo "Renaming Kitty.app to Terminal.app"
+    mv -f /Applications/Kitty.app /Applications/Terminal.app
+
+    # Hack the Kitty icon with a custom terminal icon
+    # TODO: Might be better to find/replace the original Info.plist file
+    #
+    echo "Replacing Kitty.app icon and updating display name"
+    sudo cp ./kitty-patch/terminal.icns /Applications/Terminal.app/Contents/Resources/terminal.icns
+    sudo cp ./kitty-patch/Info.plist /Applications/Terminal.app/Contents/Info.plist
+
+    # Kitty crashes unless the _CodeSignature folder is deleted
+    # It might appear Kitty works the first time, but after an OS restart, it starts failing
+    #
+    sudo rm -rf /Applications/Terminal.app/Contents/_CodeSignature
+
+    echo "Force refreshing Kitty changes"
+    sudo touch /Applications/Terminal.app
+    sudo killall Finder && sudo killall Dock
+  else
+    echo "Skipping Kitty patch"
+  fi
+fi
+
+# Install Homebrew packages
+#
+for package in \
+  antibody \
+  bat \
+  direnv \
+  neovim \
+  stow \
+  tmux \
+  tree \
+; do
+  # Prompt for reinstall
+  echo "\nInstalling package: ${package}"
+  brew install $package 
+done
+
+# Install Nerd Fonts
+#
+for font in \
+  font-caskaydia-cove-nerd-font \
+  font-fantasque-sans-mono-nerd-font \
+  font-fira-code-nerd-font \
+  font-iosevka-nerd-font \
+  font-jetbrains-mono-nerd-font \
+  font-monoid-nerd-font \
+  font-victor-mono-nerd-font \
+; do
+ echo "\nInstalling font: ${font}" 
+ # TODO: Prompt reinstall y/n/a
+ brew install $font
+done
+
+# TODO: Install additional Homebrew packages
+#   exa 
+#   fzf
+#   git 
+#   htop
+#   ripgrep 
+#   yarn
+
+# Bundle zsh plugins
+#
+echo -e "\nConfiguring zsh plugins with Antibody"
+antibody bundle < ./stow/zsh/.zsh_plugins.txt > ./stow/zsh/.zsh_plugins.sh
+
+# Run stow to symlink dotfiles
+#
+echo -e "\nStowing .dotfiles"
+cd ./stow
+for package in \
+  git \
+  kitty \
+  tmux \
+  zsh \
+; do
+  echo "Stowing ${package}"
+  stow --target=$HOME $package
+done
+cd -
+
+echo -e "\nDone! Please restart the terminal session."
+

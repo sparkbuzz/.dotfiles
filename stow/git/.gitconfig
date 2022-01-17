@@ -1,0 +1,19 @@
+[init]
+  defaultBranch = master
+[core]
+  pager = less -F -X
+  autocrlf = input
+[filter "lfs"]
+  clean = git-lfs clean -- %f
+  smudge = git-lfs smudge -- %f
+  process = git-lfs filter-process
+  required = true
+[user]
+  name = Josef van Niekerk
+	email = josef.van.niekerk@gmail.com
+[diff]
+  tool = nvimdiff
+[difftool]
+  prompt = false
+[difftool "nvimdiff"]
+  cmd = "nvim -d \"$LOCAL\" \"$REMOTE\""

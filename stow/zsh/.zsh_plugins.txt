@@ -1,0 +1,8 @@
+# Some plugins can be found at:
+# https://github.com/zsh-users
+#
+romkatv/powerlevel10k
+rupa/z
+zsh-users/zsh-autosuggestions
+zsh-users/zsh-completions
+zsh-users/zsh-syntax-highlighting
