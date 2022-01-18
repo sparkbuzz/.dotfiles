@@ -1,47 +1,114 @@
 #!/bin/zsh
 
-# Prompt for sudo password at the beginning of the script.
+PROJECT_PATH="~/Projects/sparkbuzz/.dotfiles"
+ARCHIVE_PATH="~/Downloads/dotfiles.zip"
+ARCHIVE_URL="https://github.com/sparkbuzz/.dotfiles/archive/refs/heads/master.zip"
+
+# Check OS first, this repo is only expected to work on macOS.
 #
+if [[ $OSTYPE != "darwin"* ]]; then
+  echo "This .dotfiles configuration will most likely not work with this OS! Aborting."
+  exit 1
+fi
+
+# Prompt for sudo password at the beginning of the script.
 sudo echo '' > /dev/null
 
-# Install brew
+# Check if .dotfiles.zip already exits
 #
+local OVERWRITE_ZIP
+if [[ -f $ARCHIVE_PATH ]]; then
+  echo "${ARCHIVE_PATH} already exists! Overwrite? [y/n] "
+  read -q OVERWRITE_ZIP
+  echo ""
+fi
+
+exit
+
+# Download sparkbuzz/dotfiles.zip
+#
+if [[ ! -f $ARCHIVE_PATH ]] || [[ $OVERWRITE_ZIP == "y" ]]; then
+  echo "Fetching dotfiles.zip from sparkbuzz/.dotfiles"
+  curl \
+    --location \
+    --output $ARCHIVE_PATH \
+    --remote-name $ARCHIVE_URL \
+    --remote-header-name \
+    --silent
+fi
+unset OVERWRITE_ZIP
+
+# Check if the archive has already been extracted
+#
+local OVERWRITE_PROJECT
+if [[ -d $PROJECT_PATH ]]; then
+  echo "${PROJECT_PATH} already exists! Overwrite? [y/n] "
+  read -q OVERWRITE_PROJECT
+  echo ""
+
+  if [[ $OVERWRITE_PROJECT == "y" ]]; then
+    rm -rf $PROJECT_PATH
+  fi
+fi
+
+# Extract the downloaded .dotfiles.zip archive
+#
+if [[ ! -e $PROJECT_PATH ]] || [[ $OVERWRITE_PROJECT == "y" ]]; then 
+  echo "Unzipping archive to ${PROJECT_PATH}"
+  mkdir -p $PROJECTS_PATH
+  unzip $ARCHIVE_PATH -d $PROJECTS_PATH
+  mv ${PROJECT_PATH}-master $PROJECT_PATH
+  rm $ARCHIVE_PATH
+fi
+unset OVERWRITE_PROJECT
+
+# Install Homebrew
+#
+echo "Install Homebrew"
 if ! command -v brew > /dev/null; then
-  echo "Installing homebrew"
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+else
+  echo "Skipping, Homebrew already installed"
 fi
 
 # Install Kitty
-echo -e "\nInstalling Kitty"
+local REINSTALL_KITTY
+echo -e "\nInstall Kitty"
 if brew list --cask -1 | grep kitty &> /dev/null; then
   printf "Kitty already installed, reinstall? [y/n] "
-  read -q ANSWER 
+  read -q REINSTALL_KITTY 
   echo ""
 
-  [ -e /Applications/Kitty.app ] && rm -rf /Applications/Kitty.app
-  [ -e /Applications/Terminal.app ] && rm -rf /Applications/Terminal.app
+  [[ -d /Applications/Kitty.app ]] && rm -rf /Applications/Kitty.app
+  [[ -d /Applications/Terminal.app ]] && rm -rf /Applications/Terminal.app
 
-  if [ "$ANSWER" = "y" ]; then
-    echo ""
+  if [ "$REINSTALL_KITTY" = "y" ]; then
+    echo "Reinstalling Kitty"
     brew reinstall --cask kitty
   fi
 else
-  echo ""
+  echo "Installing Kitty"
   brew install --cask kitty
 fi
+unset REINSTALL_KITTY
 
 # Kitty.app will now start, macOS will ask if this app is safe.
+# Upon closing Kitty, the script proceeds with:
+#   - renaming Kitty.app to Terminal.app
+#   - updating the Kitty icon with a different icon
 #
-if [ -e /Applications/Kitty.app ] || [ ! -e /Applications/Terminal.app ] ; then
+if [[ -d /Applications/Kitty.app ]] || [[ ! -d /Applications/Terminal.app ]] ; then
+  local PATCH_KITTY
+
   printf "\nRename Kitty.app to Terminal.app [y/n] "
-  read -q ANSWER
+  read -q PATCH_KITTY
   echo ""
 
-  if [ "$ANSWER" = "y" ]; then
+  if [[ $PATCH_KITTY = "y" ]]; then
     echo "\nFirst we need to tell macOS that kitty.app is safe"
     echo "Kitty will now start in a new application window"
-    echo " - Accept the macOS warning that Kitty was downloaded from the internet"
-    echo " - Then quit Kitty to proceed with patching"
+    echo " - Accept the macOS warning stating that Kitty was downloaded from the internet"
+    echo " - Then simply quit Kitty to proceed with patching in this terminal"
     open -g -W /Applications/kitty.app
 
     echo -e "\nPatching Kitty.app"
@@ -49,13 +116,13 @@ if [ -e /Applications/Kitty.app ] || [ ! -e /Applications/Terminal.app ] ; then
     mv -f /Applications/Kitty.app /Applications/Terminal.app
 
     # Hack the Kitty icon with a custom terminal icon
-    # TODO: Might be better to find/replace the original Info.plist file
     #
-    echo "Replacing Kitty.app icon and updating display name"
+    echo "Replacing Kitty.app icon and updating application display name"
     sudo cp ./kitty-patch/terminal.icns /Applications/Terminal.app/Contents/Resources/terminal.icns
+    # TODO: Might be better to find/replace the original Info.plist file
     sudo cp ./kitty-patch/Info.plist /Applications/Terminal.app/Contents/Info.plist
 
-    # Kitty crashes unless the _CodeSignature folder is deleted
+    # Kitty crashes unless the _CodeSignature folder is deleted.
     # It might appear Kitty works the first time, but after an OS restart, it starts failing
     #
     sudo rm -rf /Applications/Terminal.app/Contents/_CodeSignature
@@ -66,10 +133,13 @@ if [ -e /Applications/Kitty.app ] || [ ! -e /Applications/Terminal.app ] ; then
   else
     echo "Skipping Kitty patch"
   fi
+
+  unset PATCH_KITTY
 fi
 
 # Install Homebrew packages
 #
+echo -e "\n Install Homebrew packages"
 for package in \
   antibody \
   bat \
@@ -78,6 +148,12 @@ for package in \
   stow \
   tmux \
   tree \
+  # exa 
+  # fzf
+  # git 
+  # htop
+  # ripgrep 
+  # yarn
 ; do
   # Prompt for reinstall
   echo "\nInstalling package: ${package}"
@@ -86,6 +162,7 @@ done
 
 # Install Nerd Fonts
 #
+echo -e "\nInstalling Nerd Fonts"
 for font in \
   font-caskaydia-cove-nerd-font \
   font-fantasque-sans-mono-nerd-font \
@@ -100,27 +177,18 @@ for font in \
  brew install $font
 done
 
-# TODO: Install additional Homebrew packages
-#   exa 
-#   fzf
-#   git 
-#   htop
-#   ripgrep 
-#   yarn
-
 # Bundle zsh plugins
 #
 echo -e "\nConfiguring zsh plugins with Antibody"
 antibody bundle < ./stow/zsh/.zsh_plugins.txt > ./stow/zsh/.zsh_plugins.sh
 
-# Run stow to symlink dotfiles
+# Run GNU Stow to symlink dotfiles
 #
 echo -e "\nStowing .dotfiles"
 cd ./stow
 for package in \
   git \
   kitty \
-  tmux \
   zsh \
 ; do
   echo "Stowing ${package}"
@@ -128,5 +196,4 @@ for package in \
 done
 cd -
 
-echo -e "\nDone! Please restart the terminal session."
-
+echo -e "\nDone! Please restart the terminal sessio, and enjoy!"
