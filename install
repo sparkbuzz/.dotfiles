@@ -1,168 +1,117 @@
-#!/bin/zsh
+#!/bin/bash
 
-PROJECT_PATH="~/Projects/sparkbuzz/.dotfiles"
-ARCHIVE_PATH="~/Downloads/dotfiles.zip"
-ARCHIVE_URL="https://github.com/sparkbuzz/.dotfiles/archive/refs/heads/master.zip"
+# ╔═════════════════════╗
+# ║ sparkbuzz/.dotfiles ║
+# ╚═════════════════════╝
+
+# set -x
+
+dotfiles_tmp='/tmp/.dotfiles-master'
+dotfiles_path="${HOME}/Projects/sparkbuzz/.dotfiles"
+dotfiles_zip='/tmp/dotfiles.zip'
+download_url='https://github.com/sparkbuzz/.dotfiles/archive/refs/heads/master.zip'
+# log='/var/log/dotfiles.log'
 
 # Check OS first, this repo is only expected to work on macOS.
-#
-if [[ $OSTYPE != "darwin"* ]]; then
-  echo "This .dotfiles configuration will most likely not work with this OS! Aborting."
+if [[ $OSTYPE != 'darwin'* ]]; then
+  printf 'sparkbuzz/.dotfiles does not work with this OS! Aborting.\n'
   exit 1
 fi
 
 # Prompt for sudo password at the beginning of the script.
-sudo echo '' > /dev/null
+printf 'Let'\''s get this Mac ready for coding...\n'
+sudo printf '' > /dev/null
 
-# Check if .dotfiles.zip already exits
-#
-local OVERWRITE_ZIP
-if [[ -f $ARCHIVE_PATH ]]; then
-  echo "${ARCHIVE_PATH} already exists! Overwrite? [y/n] "
-  read -q OVERWRITE_ZIP
-  echo ""
-fi
+# Create installation log file and clear
+# printf '\nLogging to %s\n' "$log"
+# sudo touch $log
+# sudo chown $(whoami):staff $log
+# s: > $log
 
-exit
+printf '\nFetch and configure source\n'
 
-# Download sparkbuzz/dotfiles.zip
-#
-if [[ ! -f $ARCHIVE_PATH ]] || [[ $OVERWRITE_ZIP == "y" ]]; then
-  echo "Fetching dotfiles.zip from sparkbuzz/.dotfiles"
-  curl \
-    --location \
-    --output $ARCHIVE_PATH \
-    --remote-name $ARCHIVE_URL \
-    --remote-header-name \
-    --silent
-fi
-unset OVERWRITE_ZIP
+# Check if .dotfiles has already been extracted
+if [[ -d $dotfiles_path ]]; then
+  printf '  - %s already exists! Overwrite? [y/n] ' "$dotfiles_path"
+  read -qr overwrite_dotfiles_path
+  printf '\n'
 
-# Check if the archive has already been extracted
-#
-local OVERWRITE_PROJECT
-if [[ -d $PROJECT_PATH ]]; then
-  echo "${PROJECT_PATH} already exists! Overwrite? [y/n] "
-  read -q OVERWRITE_PROJECT
-  echo ""
-
-  if [[ $OVERWRITE_PROJECT == "y" ]]; then
-    rm -rf $PROJECT_PATH
+  if [[ $overwrite_dotfiles_path == 'y' ]]; then
+    rm -rf "$dotfiles_path"
+    rm -rf "$dotfiles_tmp"
+  else
+    printf '  - Using existing %s\n' "$dotfiles_path"
+    dotfiles_exists='y'
   fi
 fi
 
-# Extract the downloaded .dotfiles.zip archive
-#
-if [[ ! -e $PROJECT_PATH ]] || [[ $OVERWRITE_PROJECT == "y" ]]; then 
-  echo "Unzipping archive to ${PROJECT_PATH}"
-  mkdir -p $PROJECTS_PATH
-  unzip $ARCHIVE_PATH -d $PROJECTS_PATH
-  mv ${PROJECT_PATH}-master $PROJECT_PATH
-  rm $ARCHIVE_PATH
+# Download and extract source from sparkbuzz/.dotfiles
+if [[ $dotfiles_exists == 'n' ]] || [[ $overwrite_dotfiles_path == 'y' ]]; then
+  # Check if dotfiles.zip has already been downloaded
+  if [[ -f $dotfiles_zip ]]; then
+    printf '  - %s already exists! Download again and overwrite? [y/n] ' "$dotfiles_zip"
+    read -qr overwrite_zip
+    printf ''
+  fi
+
+  # Download sparkbuzz/dotfiles.zip from GitHub
+  if [[ ! -f $dotfiles_zip ]] || [[ $overwrite_zip == 'y' ]]; then
+    printf '  - Downloading %s\n' "$download_url"
+    curl \
+      --location \
+      --output $dotfiles_zip \
+      --remote-name $download_url \
+      --remote-header-name \
+      --silent
+  fi
+
+  # Extract the downloaded .dotfiles.zip archive
+  #
+  if [[ ! -e $dotfiles_path ]]; then
+    printf '  - Extracting %s to %s\n' "$dotfiles_zip" "$dotfiles_tmp"
+    unzip -q $dotfiles_zip -d /tmp
+    
+    printf '  - Moving %s to %s\n' "$dotfiles_tmp" "$dotfiles_path"
+    mv "$dotfiles_tmp" "$dotfiles_path"
+    
+    printf '  - Removing %s\n' "$dotfiles_zip"
+    rm $dotfiles_zip
+  else
+    printf '  - Using existing %s \n' "$dotfiles_zip"
+  fi
 fi
-unset OVERWRITE_PROJECT
 
 # Install Homebrew
-#
-echo "Install Homebrew"
+printf '\nHomebrew\n'
 if ! command -v brew > /dev/null; then
+  printf '  - Installing...\n'
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 else
-  echo "Skipping, Homebrew already installed"
+  printf '  - Skipping, Homebrew is already installed\n'
 fi
 
-# Install Kitty
-local REINSTALL_KITTY
-echo -e "\nInstall Kitty"
-if brew list --cask -1 | grep kitty &> /dev/null; then
-  printf "Kitty already installed, reinstall? [y/n] "
-  read -q REINSTALL_KITTY 
-  echo ""
-
-  [[ -d /Applications/Kitty.app ]] && rm -rf /Applications/Kitty.app
-  [[ -d /Applications/Terminal.app ]] && rm -rf /Applications/Terminal.app
-
-  if [ "$REINSTALL_KITTY" = "y" ]; then
-    echo "Reinstalling Kitty"
-    brew reinstall --cask kitty
-  fi
-else
-  echo "Installing Kitty"
-  brew install --cask kitty
-fi
-unset REINSTALL_KITTY
-
-# Kitty.app will now start, macOS will ask if this app is safe.
-# Upon closing Kitty, the script proceeds with:
-#   - renaming Kitty.app to Terminal.app
-#   - updating the Kitty icon with a different icon
-#
-if [[ -d /Applications/Kitty.app ]] || [[ ! -d /Applications/Terminal.app ]] ; then
-  local PATCH_KITTY
-
-  printf "\nRename Kitty.app to Terminal.app [y/n] "
-  read -q PATCH_KITTY
-  echo ""
-
-  if [[ $PATCH_KITTY = "y" ]]; then
-    echo "\nFirst we need to tell macOS that kitty.app is safe"
-    echo "Kitty will now start in a new application window"
-    echo " - Accept the macOS warning stating that Kitty was downloaded from the internet"
-    echo " - Then simply quit Kitty to proceed with patching in this terminal"
-    open -g -W /Applications/kitty.app
-
-    echo -e "\nPatching Kitty.app"
-    echo "Renaming Kitty.app to Terminal.app"
-    mv -f /Applications/Kitty.app /Applications/Terminal.app
-
-    # Hack the Kitty icon with a custom terminal icon
-    #
-    echo "Replacing Kitty.app icon and updating application display name"
-    sudo cp ./kitty-patch/terminal.icns /Applications/Terminal.app/Contents/Resources/terminal.icns
-    # TODO: Might be better to find/replace the original Info.plist file
-    sudo cp ./kitty-patch/Info.plist /Applications/Terminal.app/Contents/Info.plist
-
-    # Kitty crashes unless the _CodeSignature folder is deleted.
-    # It might appear Kitty works the first time, but after an OS restart, it starts failing
-    #
-    sudo rm -rf /Applications/Terminal.app/Contents/_CodeSignature
-
-    echo "Force refreshing Kitty changes"
-    sudo touch /Applications/Terminal.app
-    sudo killall Finder && sudo killall Dock
-  else
-    echo "Skipping Kitty patch"
-  fi
-
-  unset PATCH_KITTY
-fi
+# Report on the current Homebrew version
+printf '\n'
+brew --version
+brew doctor
 
 # Install Homebrew packages
-#
-echo -e "\n Install Homebrew packages"
+printf '\nHomebrew packages\n'
 for package in \
   antibody \
   bat \
   direnv \
   neovim \
   stow \
-  tmux \
   tree \
-  # exa 
-  # fzf
-  # git 
-  # htop
-  # ripgrep 
-  # yarn
 ; do
-  # Prompt for reinstall
-  echo "\nInstalling package: ${package}"
-  brew install $package 
+  # TODO: Prompt for reinstall y/n/a
+  printf '  - %s\n' "$package"
+  brew install $package
 done
 
 # Install Nerd Fonts
-#
-echo -e "\nInstalling Nerd Fonts"
+printf '\nNerd Fonts\n'
 for font in \
   font-caskaydia-cove-nerd-font \
   font-fantasque-sans-mono-nerd-font \
@@ -172,28 +121,90 @@ for font in \
   font-monoid-nerd-font \
   font-victor-mono-nerd-font \
 ; do
- echo "\nInstalling font: ${font}" 
+ printf '  - homebrew/cask-fonts/%s\n' "$font"
  # TODO: Prompt reinstall y/n/a
- brew install $font
+ brew install homebrew/cask-fonts/$font
 done
 
+# Install Kitty
+printf '\nKitty terminal\n'
+if brew list --cask -1 | grep kitty &> /dev/null; then
+  printf 'Kitty already installed, reinstall? [y/n] '
+  read -qr reinstall_kitty 
+  printf '\n'
+
+  [[ -d /Applications/Kitty.app ]] && rm -rf /Applications/Kitty.app
+  [[ -d /Applications/Terminal.app ]] && rm -rf /Applications/Terminal.app
+
+  if [[ $reinstall_kitty == 'y' ]]; then
+    printf '  - Reinstalling Kitty terminal\n'
+    brew reinstall --cask kitty
+  fi
+else
+  printf '  - Installing Kitty terminal\n'
+  brew install --cask kitty
+fi
+
+# Kitty patch
+#  - renames kitty.tmp to Terminal.app
+#  - updates application displayname to 'Terminal'
+#  - replaces the Kitty icon with a nicer Terminal icon
+if [[ -d /Applications/Kitty.app ]] && [[ ! -d /Applications/Terminal.app ]] ; then
+  patch_kitty
+
+  printf '  - Patch Kitty app icon and rename to Terminal.app? [y/n] '
+  read -qr patch_kitty
+  printf '\n'
+
+  if [[ $patch_kitty = 'y' ]]; then
+    printf '\n  Before patching, macOS needs to know that kitty.app is safe\n'
+    printf '  Kitty will now start in a new application window:\n'
+    printf '    - accept the macOS warning stating that Kitty was downloaded from the internet\n'
+    printf '    - then completely quit Kitty to proceed with patching in this terminal\n'
+    printf '  Note: The screen might flicker since the script forces Finder and Dock to restart\n'
+    open -g -W /Applications/kitty.app
+
+    printf '\n  - Renaming Kitty.app to Terminal.app\n'
+    mv -f /Applications/Kitty.app /Applications/Terminal.app
+
+    # Hack the Kitty icon with a custom terminal icon
+    # TODO: Might be better to find/replace the original Info.plist file
+    printf '  - Replacing the Kitty.app icon\n'
+    sudo cp "$dotfiles_path"/kitty-patch/terminal.icns /Applications/Terminal.app/Contents/Resources/terminal.icns
+    
+    printf '  - Updating Info.plist\n'
+    sudo cp "$dotfiles_path"/kitty-patch/Info.plist /Applications/Terminal.app/Contents/Info.plist
+
+    # Kitty crashes unless the _CodeSignature folder is deleted.
+    # It might appear Kitty works the first time, but after an OS restart, it starts failing
+    printf '  - Killing Kitty app code signature\n'
+    sudo rm -rf /Applications/Terminal.app/Contents/_CodeSignature
+
+    printf '  - Force refreshing changes\n'
+    sudo touch /Applications/Terminal.app
+    sudo killall Finder && sudo killall Dock
+  else
+    printf ' - Skipping the Kitty patch\n'
+  fi
+fi
+
 # Bundle zsh plugins
-#
-echo -e "\nConfiguring zsh plugins with Antibody"
-antibody bundle < ./stow/zsh/.zsh_plugins.txt > ./stow/zsh/.zsh_plugins.sh
+printf '\nAntibody\n'
+printf 'Configuring Zsh plugins\n'
+antibody bundle < "$dotfiles_path"/stow/zsh/.zsh_plugins.txt > "$dotfiles_path"/stow/zsh/.zsh_plugins.sh
 
 # Run GNU Stow to symlink dotfiles
-#
-echo -e "\nStowing .dotfiles"
-cd ./stow
+printf '\nStow\n'
+printf 'Stowing .dotfiles in %s\n' "$HOME"
+cd "$dotfiles_path"/stow || exit
 for package in \
   git \
   kitty \
   zsh \
 ; do
-  echo "Stowing ${package}"
-  stow --target=$HOME $package
+  printf '  - %s\n' "$package"
+  stow --target="$HOME" $package
 done
-cd -
+cd - || exit
 
-echo -e "\nDone! Please restart the terminal sessio, and enjoy!"
+printf '\nPlease restart your terminal session, and enjoy!\n'
