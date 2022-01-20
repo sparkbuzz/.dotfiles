@@ -1,38 +1,78 @@
-#!/bin/bash
+#!/bin/zsh
 
-# ╔═════════════════════╗
-# ║ sparkbuzz/.dotfiles ║
-# ╚═════════════════════╝
+# sparkbuzz/.dotfiles install script
+# ══════════════════════════════════════════════════════════════════════════════
 
+# Uncomment to print shell commands 
+#
 # set -x
 
+
+# Variables
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Path where dotfiles is extracted to
+#
 dotfiles_tmp='/tmp/.dotfiles-master'
+
+# Destination path where .dotfiles will be extracted to
+#
 dotfiles_path="${HOME}/Projects/sparkbuzz/.dotfiles"
+
+# Path where dotfiles archive is downloaded to
+#
 dotfiles_zip='/tmp/dotfiles.zip'
+
+# URL from which the repository .zip archive is downloaded
+#
 download_url='https://github.com/sparkbuzz/.dotfiles/archive/refs/heads/master.zip'
-# log='/var/log/dotfiles.log'
+
+# Path to .dotfiles log file
+#
+log='/var/log/dotfiles.log'
+
+
+# Pre installation checks
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Don't fall asleep
+#
+caffeinate -i -w $$ &
 
 # Check OS first, this repo is only expected to work on macOS.
+#
 if [[ $OSTYPE != 'darwin'* ]]; then
   printf 'sparkbuzz/.dotfiles does not work with this OS! Aborting.\n'
   exit 1
 fi
 
+printf 'Let'\''s get this Mac ready for coding!!!\n'
+
 # Prompt for sudo password at the beginning of the script.
-printf 'Let'\''s get this Mac ready for coding...\n'
-sudo printf '' > /dev/null
+#
+sudo -v
 
-# Create installation log file and clear
-# printf '\nLogging to %s\n' "$log"
-# sudo touch $log
-# sudo chown $(whoami):staff $log
-# s: > $log
 
-printf '\nFetch and configure source\n'
+# Setup /var/log/dotfiles/log 
+# ══════════════════════════════════════════════════════════════════════════════
 
-# Check if .dotfiles has already been extracted
+printf '\nLogging to %s\n' "$log"
+sudo touch $log
+sudo chown "$(whoami)":staff "$log"
+: > $log
+
+
+# Fetch and configure sparkbuzz/.dotfiles source from GitHub
+# ══════════════════════════════════════════════════════════════════════════════
+
+printf '\nFetch and configure .dotfiles source\n'
+
+dotfiles_exists='n'
+
+# Check if $dotfiles_path already exists
+#
 if [[ -d $dotfiles_path ]]; then
-  printf '  - %s already exists! Overwrite? [y/n] ' "$dotfiles_path"
+  printf '  ⦿ %s already exists! Overwrite? [y/n] ' "$dotfiles_path"
   read -qr overwrite_dotfiles_path
   printf '\n'
 
@@ -40,171 +80,225 @@ if [[ -d $dotfiles_path ]]; then
     rm -rf "$dotfiles_path"
     rm -rf "$dotfiles_tmp"
   else
-    printf '  - Using existing %s\n' "$dotfiles_path"
+    printf '  ⦿ Using existing %s\n' "$dotfiles_path"
     dotfiles_exists='y'
   fi
 fi
 
 # Download and extract source from sparkbuzz/.dotfiles
+#
 if [[ $dotfiles_exists == 'n' ]] || [[ $overwrite_dotfiles_path == 'y' ]]; then
   # Check if dotfiles.zip has already been downloaded
   if [[ -f $dotfiles_zip ]]; then
-    printf '  - %s already exists! Download again and overwrite? [y/n] ' "$dotfiles_zip"
+    printf '\n  ⦿ %s already exists! Download again and overwrite? [y/n] ' "$dotfiles_zip"
     read -qr overwrite_zip
     printf ''
   fi
 
   # Download sparkbuzz/dotfiles.zip from GitHub
+  #
   if [[ ! -f $dotfiles_zip ]] || [[ $overwrite_zip == 'y' ]]; then
-    printf '  - Downloading %s\n' "$download_url"
+    printf '  ◌ Downloading %s ' "$download_url"
+
     curl \
       --location \
       --output $dotfiles_zip \
       --remote-name $download_url \
       --remote-header-name \
       --silent
+
+    printf '\033[2K\r  ⦿ Downloading %s\n' "$download_url"
   fi
 
   # Extract the downloaded .dotfiles.zip archive
   #
   if [[ ! -e $dotfiles_path ]]; then
-    printf '  - Extracting %s to %s\n' "$dotfiles_zip" "$dotfiles_tmp"
+    printf '  ⦿ Extracting %s to %s\n' "$dotfiles_zip" "$dotfiles_tmp"
     unzip -q $dotfiles_zip -d /tmp
     
-    printf '  - Moving %s to %s\n' "$dotfiles_tmp" "$dotfiles_path"
+    printf '  ⦿ Moving %s to %s\n' "$dotfiles_tmp" "$dotfiles_path"
     mv "$dotfiles_tmp" "$dotfiles_path"
     
-    printf '  - Removing %s\n' "$dotfiles_zip"
+    printf '  ⦿ Removing %s\n' "$dotfiles_zip"
     rm $dotfiles_zip
   else
-    printf '  - Using existing %s \n' "$dotfiles_zip"
+    printf '  ⦿ Using existing %s \n' "$dotfiles_zip"
   fi
 fi
 
+
 # Install Homebrew
+# ══════════════════════════════════════════════════════════════════════════════
+
 printf '\nHomebrew\n'
 if ! command -v brew > /dev/null; then
-  printf '  - Installing...\n'
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  printf '  ◌ Installing Homebrew '
+  NONINTERACTIVE=1 \
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$log" 2>&1
+  printf '\033[2K\r  ⦿ Installing Homebrew\n'
 else
-  printf '  - Skipping, Homebrew is already installed\n'
+  printf '  ⦿ Skipping, Homebrew already installed\n'
 fi
 
 # Report on the current Homebrew version
+#
 printf '\n'
 brew --version
 brew doctor
 
+
 # Install Homebrew packages
+# ══════════════════════════════════════════════════════════════════════════════
+
 printf '\nHomebrew packages\n'
-for package in \
-  antibody \
-  bat \
-  direnv \
-  neovim \
-  stow \
-  tree \
-; do
+
+packages=(
+  antibody
+  bat
+  direnv
+  neovim
+  stow
+  tree
+)
+
+for package in "${packages[@]}"; do
+  printf '  ◌ %s ' "$package"
+
+  # NOTE: Subshell here is intentional, the script was behaving badly otherwise
   # TODO: Prompt for reinstall y/n/a
-  printf '  - %s\n' "$package"
-  brew install $package
+  (brew install "$package" >> "$log" 2>&1)
+
+  printf '\033[2K\r  ⦿ %s\n' "$package" 
 done
+
 
 # Install Nerd Fonts
+# ══════════════════════════════════════════════════════════════════════════════
+
 printf '\nNerd Fonts\n'
-for font in \
-  font-caskaydia-cove-nerd-font \
-  font-fantasque-sans-mono-nerd-font \
-  font-fira-code-nerd-font \
-  font-iosevka-nerd-font \
-  font-jetbrains-mono-nerd-font \
-  font-monoid-nerd-font \
-  font-victor-mono-nerd-font \
-; do
- printf '  - homebrew/cask-fonts/%s\n' "$font"
- # TODO: Prompt reinstall y/n/a
- brew install homebrew/cask-fonts/$font
+
+fonts=(
+  homebrew/cask-fonts/font-caskaydia-cove-nerd-font
+  homebrew/cask-fonts/font-fantasque-sans-mono-nerd-font
+  homebrew/cask-fonts/font-fira-code-nerd-font
+  homebrew/cask-fonts/font-iosevka-nerd-font
+  homebrew/cask-fonts/font-jetbrains-mono-nerd-font
+  homebrew/cask-fonts/font-monoid-nerd-font
+  homebrew/cask-fonts/font-meslo-lg-nerd-font
+  homebrew/cask-fonts/font-victor-mono-nerd-font
+)
+
+for font in "${fonts[@]}"; do \
+  printf '  ◌ %s ' "$font"
+
+  # NOTE: Subshell here is intentional, the script was behaving badly otherwise
+  # TODO: Prompt reinstall y/n/a
+  (brew install "$font" >> "$log" 2>&1)
+
+  printf '\033[2K\r  ⦿ %s\n' "$font"
 done
 
+
 # Install Kitty
+# ══════════════════════════════════════════════════════════════════════════════
+
 printf '\nKitty terminal\n'
 if brew list --cask -1 | grep kitty &> /dev/null; then
-  printf 'Kitty already installed, reinstall? [y/n] '
+  printf '  ⦿ Kitty already installed, reinstall? [y/n] '
   read -qr reinstall_kitty 
   printf '\n'
 
-  [[ -d /Applications/Kitty.app ]] && rm -rf /Applications/Kitty.app
-  [[ -d /Applications/Terminal.app ]] && rm -rf /Applications/Terminal.app
-
   if [[ $reinstall_kitty == 'y' ]]; then
-    printf '  - Reinstalling Kitty terminal\n'
-    brew reinstall --cask kitty
+    [[ -d /Applications/Kitty.app ]] && rm -rf /Applications/Kitty.app
+    [[ -d /Applications/Terminal.app ]] && rm -rf /Applications/Terminal.app
+
+    printf '  ◌ Reinstalling Kitty terminal '
+    (brew reinstall --cask kitty >> "$log" 2>&1)
+    printf '\033[2K\r  ⦿ Reinstalling Kitty terminal\n'
   fi
 else
-  printf '  - Installing Kitty terminal\n'
-  brew install --cask kitty
+  printf '  ◌ Installing Kitty terminal '
+  (brew install --cask kitty >> "$log" 2>&1)
+  printf '\033[2K\r  ⦿ Installing Kitty terminal\n'
 fi
 
-# Kitty patch
-#  - renames kitty.tmp to Terminal.app
-#  - updates application displayname to 'Terminal'
-#  - replaces the Kitty icon with a nicer Terminal icon
-if [[ -d /Applications/Kitty.app ]] && [[ ! -d /Applications/Terminal.app ]] ; then
-  patch_kitty
 
-  printf '  - Patch Kitty app icon and rename to Terminal.app? [y/n] '
+# Kitty patch
+# ══════════════════════════════════════════════════════════════════════════════
+# ⦿ renames kitty.app to Terminal.app
+# ⦿ updates application display name to 'Terminal'
+# ⦿ replaces the Kitty icon with a nicer Terminal icon
+
+if [[ -d /Applications/Kitty.app ]] && [[ ! -d /Applications/Terminal.app ]] ; then
+  printf '  ⦿ Patch Kitty icon and rename to Terminal.app? [y/n] '
   read -qr patch_kitty
   printf '\n'
 
   if [[ $patch_kitty = 'y' ]]; then
     printf '\n  Before patching, macOS needs to know that kitty.app is safe\n'
     printf '  Kitty will now start in a new application window:\n'
-    printf '    - accept the macOS warning stating that Kitty was downloaded from the internet\n'
-    printf '    - then completely quit Kitty to proceed with patching in this terminal\n'
-    printf '  Note: The screen might flicker since the script forces Finder and Dock to restart\n'
+    printf '    ⦿ accept the macOS warning stating that Kitty was downloaded from the internet\n'
+    printf '    ⦿ then completely quit Kitty to proceed with patching in this terminal\n'
+    printf '\n  Note: The screen might flicker since the script forces Finder and Dock to restart\n'
+
     open -g -W /Applications/kitty.app
 
-    printf '\n  - Renaming Kitty.app to Terminal.app\n'
+    printf '\n  ⦿ Renaming Kitty.app to Terminal.app\n'
     mv -f /Applications/Kitty.app /Applications/Terminal.app
 
     # Hack the Kitty icon with a custom terminal icon
     # TODO: Might be better to find/replace the original Info.plist file
-    printf '  - Replacing the Kitty.app icon\n'
+    #
+    printf '  ⦿ Replacing the Kitty.app icon\n'
     sudo cp "$dotfiles_path"/kitty-patch/terminal.icns /Applications/Terminal.app/Contents/Resources/terminal.icns
     
-    printf '  - Updating Info.plist\n'
+    printf '  ⦿ Updating Info.plist\n'
     sudo cp "$dotfiles_path"/kitty-patch/Info.plist /Applications/Terminal.app/Contents/Info.plist
 
     # Kitty crashes unless the _CodeSignature folder is deleted.
     # It might appear Kitty works the first time, but after an OS restart, it starts failing
-    printf '  - Killing Kitty app code signature\n'
+    #
+    printf '  ⦿ Removing Kitty app code signature\n'
     sudo rm -rf /Applications/Terminal.app/Contents/_CodeSignature
 
-    printf '  - Force refreshing changes\n'
+    printf '  ⦿ Force refreshing changes\n'
     sudo touch /Applications/Terminal.app
     sudo killall Finder && sudo killall Dock
   else
-    printf ' - Skipping the Kitty patch\n'
+    printf '  ⦿ Skipping the Kitty patch\n'
   fi
 fi
 
+
 # Bundle zsh plugins
+# ══════════════════════════════════════════════════════════════════════════════
+
 printf '\nAntibody\n'
-printf 'Configuring Zsh plugins\n'
+printf '  ⦿ Configuring Zsh plugins\n'
 antibody bundle < "$dotfiles_path"/stow/zsh/.zsh_plugins.txt > "$dotfiles_path"/stow/zsh/.zsh_plugins.sh
 
+
 # Run GNU Stow to symlink dotfiles
-printf '\nStow\n'
-printf 'Stowing .dotfiles in %s\n' "$HOME"
+# ══════════════════════════════════════════════════════════════════════════════
+
+printf '\nGNU Stow\n'
+printf '  ⦿ Stowing .dotfiles in %s\n' "$HOME"
 cd "$dotfiles_path"/stow || exit
-for package in \
-  git \
-  kitty \
-  zsh \
-; do
-  printf '  - %s\n' "$package"
-  stow --target="$HOME" $package
+
+packages=(
+  git
+  kitty
+  zsh
+)
+
+for package in "${packages[@]}"; do
+  printf '  ⦿ %s\n' "$package"
+  stow --target="$HOME" "$package"
 done
 cd - || exit
 
-printf '\nPlease restart your terminal session, and enjoy!\n'
+
+# Done!
+# ══════════════════════════════════════════════════════════════════════════════
+
+printf '\nPlease restart your terminal session, and enjoy!\n\n'
