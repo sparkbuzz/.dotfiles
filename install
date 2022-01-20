@@ -114,6 +114,7 @@ if [[ $dotfiles_exists == 'n' ]] || [[ $overwrite_dotfiles_path == 'y' ]]; then
   #
   if [[ ! -e $dotfiles_path ]]; then
     printf '  ⦿ Extracting %s to %s\n' "$dotfiles_zip" "$dotfiles_tmp"
+    [[ -d "$dotfiles_tmp" ]] && rm -rf "$dotfiles_tmp"
     unzip -q $dotfiles_zip -d /tmp
     
     printf '  ⦿ Moving %s to %s\n' "$dotfiles_tmp" "$dotfiles_path"
