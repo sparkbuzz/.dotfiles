@@ -15,7 +15,11 @@
 #
 dotfiles_tmp='/tmp/.dotfiles-master'
 
-# Destination path where .dotfiles will be extracted to
+# Destination path where projects will reside
+#
+projects_path="${HOME}/Projects/sparkbuzz"
+
+# Destination path where .dotfiles will be moved to
 #
 dotfiles_path="${HOME}/Projects/sparkbuzz/.dotfiles"
 
@@ -118,6 +122,7 @@ if [[ $dotfiles_exists == 'n' ]] || [[ $overwrite_dotfiles_path == 'y' ]]; then
     unzip -q $dotfiles_zip -d /tmp
     
     printf '  ⦿ Moving %s to %s\n' "$dotfiles_tmp" "$dotfiles_path"
+    mkdir -p "$projects_path"
     mv "$dotfiles_tmp" "$dotfiles_path"
     
     printf '  ⦿ Removing %s\n' "$dotfiles_zip"
