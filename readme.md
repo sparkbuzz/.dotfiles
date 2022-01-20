@@ -1,10 +1,13 @@
 # sparkbuzz/devenv
 
-My .dotfiles setup, featuring kitty, tmux, zsh and neovim. 
+My .dotfiles setup, featuring Kitty terminal, Zsh and Neovim.
 
 ## Installation
 
-- Run `chmod +x ./install` to make the install script executable.
-- Run `./install` and follow the prompts.
-- Restart the terminal
+To install sparkbuzz/.dotfiles, run the following command:
 
+```
+curl -s https://raw.githubusercontent.com/sparkbuzz/.dotfiles/master/install | zsh
+```
+
+PS: _Use at your own risk_
