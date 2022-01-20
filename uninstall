@@ -1,0 +1,208 @@
+#!/bin/zsh
+
+# sparkbuzz/.dotfiles uninstall script
+# ══════════════════════════════════════════════════════════════════════════════
+
+# set -x
+
+# Variables
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Destination path where .dotfiles will be extracted to
+#
+dotfiles_path="${HOME}/Projects/sparkbuzz/.dotfiles"
+
+# Path to .dotfiles log file
+#
+log='/var/log/dotfiles.log'
+
+
+# Pre-uninstall checks
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Don't fall asleep
+#
+caffeinate -i -w $$ &
+
+# Prompt for certainty
+#
+printf "Proceed with uninstalling .dotfiles? [y/n] "
+read -qr answer
+if [[ "$answer" == 'n' ]]; then
+  printf '\nAborting, I'\''ll be here when you need me!\n'
+  exit 0 
+fi
+printf '\n'
+
+# Prompt for sudo password at the beginning of the script.
+#
+sudo -v 
+
+
+# Setup /var/log/dotfiles/log 
+# ══════════════════════════════════════════════════════════════════════════════
+
+printf '\nLogging to %s\n' "$log"
+sudo touch $log
+sudo chown "$(whoami)":staff "$log"
+: > $log
+printf '\n'
+
+
+# Uninstall Homebrew
+# ══════════════════════════════════════════════════════════════════════════════
+
+brew_exists=$(command -v brew)
+
+if [[ -n "$brew_exists" ]]; then
+  # Uninstall Homebrew formulae
+  #
+  printf 'Uninstalling Homebrew formulae\n'
+  formulae=(`echo $(brew list --formula | tr '\n' ' ')`)
+
+  if [[ -n "$formulae" ]]; then
+    for formula in "${formulae[@]}"; do
+      printf '  ◌ %s ' "$formula"
+      (brew remove --force "$formula" >> "$log" 2>&1)
+      printf '\033[2K\r  ⦿ %s\n' "$formula" 
+    done
+  else
+    println 'No Homebrew formulae to uninstall\n'
+  fi
+
+  # Uninstall Homebrew casks
+  #
+  printf '\nUninstalling Homebrew casks\n'
+  casks=(`echo $(brew list | tr '\n' ' ')`)
+ 
+  if [[ -n "$casks" ]]; then 
+    for cask in "${casks[@]}"; do
+      printf '  ◌ %s ' "$cask"
+      (brew remove --cask --force "$cask" >> "$log" 2>&1)
+      printf '\033[2K\r  ⦿ %s\n' "$cask" 
+    done
+  else
+    printf 'No Homebrew casks to uninstall\n'
+  fi
+
+  # Finally, uninstall Homebrew
+  printf '  ◌ Uninstalling Homebrew ' 
+
+  [[ -f /tmp/uninstall_brew.sh ]] && rm -f /tmp/uninstall_brew.sh
+
+  curl \
+    --fail \
+    --location \
+    --output /tmp/uninstall_brew.sh \
+    --show-error \
+    --silent \
+    https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh
+
+  chmod +x /tmp/uninstall_brew.sh
+  /tmp/uninstall_brew.sh --force >> "$log" 2>&1
+
+  printf '\033[2K\r  ⦿ Uninstalling Homebrew'
+
+  # Remove Homebrew folders
+  #
+
+  printf '\nRemoving Homebrew folders\n'
+
+  homebrew_dirs=(
+    /usr/local/Frameworks
+    /usr/local/Homebrew
+    /usr/local/bin
+    /usr/local/etc
+    /usr/local/include
+    /usr/local/lib
+    /usr/local/opt
+    /usr/local/sbin
+    /usr/local/share
+    /usr/local/var
+  )
+
+  for d in "${homebrew_dirs[@]}"; do
+    if [[ -d "$d" ]]; then
+      printf '  ⦿ %s\n' "$d"
+      sudo rm -rf "$d" 
+    fi
+  done
+else
+  printf 'No Homebrew found to uninstall!\n'
+fi
+
+
+# Remove Stow symlinks
+# ══════════════════════════════════════════════════════════════════════════════
+
+printf '\nRemoving GNU Stow symlinks\n'
+
+stow_files=(
+  ~/.gitconfig
+  ~/.gitignore_global
+  ~/.p10k.zsh
+  ~/.zsh_plugins.txt
+  ~/.zsh_plugins.sh
+  ~/.zshrc
+)
+
+for f in "${stow_files[@]}"; do
+  if [[ -f "$f" ]]; then
+    printf '  ⦿ %s\n' "$f"
+    rm -rf "$f"
+  fi
+done
+
+
+# Remove Kitty app 
+# ══════════════════════════════════════════════════════════════════════════════
+
+printf '\nRemoving Kitty\n'
+
+kitty_paths=(
+  /Applications/kitty.app
+  /Applications/Terminal.app 
+  /usr/local/bin/kitty 
+)
+
+for p in "${kitty_paths[@]}"; do
+  if [[ -e "${p}" ]]; then
+    printf '  ⦿ Removing %s\n' "$p"
+    sudo rm -rf "${p}"
+  fi
+done
+
+
+# Remove .dotfiles
+# ══════════════════════════════════════════════════════════════════════════════
+
+if [[ -d "$dotfiles_path" ]]; then
+  printf '\nRemove %s? [y/n] ' "$dotfiles_path"
+  read -qr remove_dotfiles
+
+  if [[ "$remove_dotfiles" == 'y' ]]; then
+    printf '\nRemoving %s\n' $"dotfiles_path"
+    rm -rf "$dotfiles_path"
+  fi
+fi
+
+
+# Remove log file
+# ══════════════════════════════════════════════════════════════════════════════
+
+if [[ -f "$log" ]]; then
+  printf '\nRemove %s? [y/n] ' "$log"
+  read -qr answer
+
+  if [[ "$answer" == 'y' ]]; then
+    printf '\nRemoving %s\n' "$log"
+    sudo rm -f "$log"
+  fi
+fi
+
+
+# Done!
+# ══════════════════════════════════════════════════════════════════════════════
+
+printf '\nDone, should be squeaky clean!\n'
+
