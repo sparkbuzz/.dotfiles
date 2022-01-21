@@ -3,10 +3,6 @@
 # sparkbuzz/.dotfiles install script
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Uncomment to print shell commands 
-#
-# set -x
-
 
 # Variables
 # ══════════════════════════════════════════════════════════════════════════════
@@ -56,20 +52,23 @@ printf 'Let'\''s get this Mac ready for coding!!!\n'
 #
 sudo -v
 
+printf '\n'
 
 # Setup /var/log/dotfiles/log 
 # ══════════════════════════════════════════════════════════════════════════════
 
-printf '\nLogging to %s\n' "$log"
+printf 'Logging to %s\n' "$log"
 sudo touch $log
 sudo chown "$(whoami)":staff "$log"
 : > $log
+
+printf '\n'
 
 
 # Fetch and configure sparkbuzz/.dotfiles source from GitHub
 # ══════════════════════════════════════════════════════════════════════════════
 
-printf '\nFetch and configure .dotfiles source\n'
+printf 'Fetch and configure .dotfiles source\n'
 
 dotfiles_exists='n'
 
@@ -94,7 +93,7 @@ fi
 if [[ $dotfiles_exists == 'n' ]] || [[ $overwrite_dotfiles_path == 'y' ]]; then
   # Check if dotfiles.zip has already been downloaded
   if [[ -f $dotfiles_zip ]]; then
-    printf '\n  ⦿ %s already exists! Download again and overwrite? [y/n] ' "$dotfiles_zip"
+    printf '  ⦿ %s already exists! Download again and overwrite? [y/n] ' "$dotfiles_zip"
     read -qr overwrite_zip
     printf ''
   fi
@@ -132,15 +131,27 @@ if [[ $dotfiles_exists == 'n' ]] || [[ $overwrite_dotfiles_path == 'y' ]]; then
   fi
 fi
 
+printf '\n'
+
 
 # Install Homebrew
 # ══════════════════════════════════════════════════════════════════════════════
 
-printf '\nHomebrew\n'
+printf 'Homebrew\n'
 if ! command -v brew > /dev/null; then
   printf '  ◌ Installing Homebrew '
-  NONINTERACTIVE=1 \
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$log" 2>&1
+
+  curl \
+    --fail \
+    --location \
+    --output $HOME/Downloads/install-brew.sh \
+    --remote-name https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh \
+    --show-error \
+    --silent
+    
+  chmod +x $HOME/Downloads/install-brew.sh
+  NONINTERACTIVE=1 $HOME/Downloads/install-brew.sh >> "$log" 2>&1
+
   printf '\033[2K\r  ⦿ Installing Homebrew\n'
 else
   printf '  ⦿ Skipping, Homebrew already installed\n'
@@ -152,11 +163,13 @@ printf '\n'
 brew --version
 brew doctor
 
+printf '\n'
+
 
 # Install Homebrew packages
 # ══════════════════════════════════════════════════════════════════════════════
 
-printf '\nHomebrew packages\n'
+printf 'Homebrew packages\n'
 
 packages=(
   antibody
@@ -177,11 +190,13 @@ for package in "${packages[@]}"; do
   printf '\033[2K\r  ⦿ %s\n' "$package" 
 done
 
+printf '\n'
+
 
 # Install Nerd Fonts
 # ══════════════════════════════════════════════════════════════════════════════
 
-printf '\nNerd Fonts\n'
+printf 'Nerd Fonts\n'
 
 fonts=(
   homebrew/cask-fonts/font-caskaydia-cove-nerd-font
@@ -204,11 +219,13 @@ for font in "${fonts[@]}"; do \
   printf '\033[2K\r  ⦿ %s\n' "$font"
 done
 
+printf '\n'
+
 
 # Install Kitty
 # ══════════════════════════════════════════════════════════════════════════════
 
-printf '\nKitty terminal\n'
+printf 'Kitty terminal\n'
 if brew list --cask -1 | grep kitty &> /dev/null; then
   printf '  ⦿ Kitty already installed, reinstall? [y/n] '
   read -qr reinstall_kitty 
@@ -275,13 +292,17 @@ if [[ -d /Applications/Kitty.app ]] && [[ ! -d /Applications/Terminal.app ]] ; t
   fi
 fi
 
+printf '\n'
+
 
 # Bundle zsh plugins
 # ══════════════════════════════════════════════════════════════════════════════
 
-printf '\nAntibody\n'
+printf 'Antibody\n'
 printf '  ⦿ Configuring Zsh plugins\n'
 antibody bundle < "$dotfiles_path"/stow/zsh/.zsh_plugins.txt > "$dotfiles_path"/stow/zsh/.zsh_plugins.sh
+
+printf '\n'
 
 
 # Run GNU Stow to symlink dotfiles
@@ -303,8 +324,9 @@ for package in "${packages[@]}"; do
 done
 cd - || exit
 
+printf '\n'
 
 # Done!
 # ══════════════════════════════════════════════════════════════════════════════
 
-printf '\nPlease restart your terminal session, and enjoy!\n\n'
+printf 'Please restart your terminal session, and enjoy!\n\n'
