@@ -63,7 +63,7 @@ if [[ -n "$brew_exists" ]]; then
   if [[ -n "$formulae" ]]; then
     for formula in "${formulae[@]}"; do
       printf '  ◌ %s ' "$formula"
-      (brew remove --force "$formula" >> "$log" 2>&1)
+      brew remove --force "$formula" >> "$log" 2>&1
       printf '\033[2K\r  ⦿ %s\n' "$formula" 
     done
   else
@@ -78,7 +78,7 @@ if [[ -n "$brew_exists" ]]; then
   if [[ -n "$casks" ]]; then 
     for cask in "${casks[@]}"; do
       printf '  ◌ %s ' "$cask"
-      (brew remove --cask --force "$cask" >> "$log" 2>&1)
+      brew remove --cask --force "$cask" >> "$log" 2>&1
       printf '\033[2K\r  ⦿ %s\n' "$cask" 
     done
   else
