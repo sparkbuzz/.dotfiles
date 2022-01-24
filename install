@@ -50,7 +50,7 @@ printf 'Let'\''s get this Mac ready for coding!!!\n'
 
 # Prompt for sudo password at the beginning of the script.
 #
-sudo -v
+sudo echo > /dev/null
 
 printf '\n'
 
@@ -92,6 +92,7 @@ fi
 #
 if [[ $dotfiles_exists == 'n' ]] || [[ $overwrite_dotfiles_path == 'y' ]]; then
   # Check if dotfiles.zip has already been downloaded
+  #
   if [[ -f $dotfiles_zip ]]; then
     printf '  ⦿ %s already exists! Download again and overwrite? [y/n] ' "$dotfiles_zip"
     read -qr overwrite_zip
@@ -144,9 +145,9 @@ if ! command -v brew > /dev/null; then
   prefix='/usr/local'
 
   mkdir /tmp/homebrew
-  curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C /tmp/homebrew
+  curl --location --silent https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C /tmp/homebrew
   sudo mv /tmp/homebrew $prefix/Homebrew
-
+ 
   sudo mkdir -p \
     ${prefix}/bin \
     ${prefix}/Cellar \
@@ -176,19 +177,13 @@ if ! command -v brew > /dev/null; then
   sudo chown -h $(whoami) ${prefix}/bin/brew
 
   eval "$(${prefix}/bin/brew shellenv)"
-  brew update --force --quiet
+  brew update --force --quiet >> "$log" 2>&1
   chmod -R go-w "$(brew --prefix)/share/zsh"
  
   printf '\033[2K\r  ⦿ Installing Homebrew\n'
 else
   printf '  ⦿ Skipping, Homebrew already installed\n'
 fi
-
-# Report on the current Homebrew version
-#
-printf '\n'
-brew --version
-brew doctor
 
 printf '\n'
 
@@ -210,9 +205,8 @@ packages=(
 for package in "${packages[@]}"; do
   printf '  ◌ %s ' "$package"
 
-  # NOTE: Subshell here is intentional, the script was behaving badly otherwise
   # TODO: Prompt for reinstall y/n/a
-  (brew install "$package" >> "$log" 2>&1)
+  brew install "$package" >> "$log" 2>&1
 
   printf '\033[2K\r  ⦿ %s\n' "$package" 
 done
@@ -241,7 +235,7 @@ for font in "${fonts[@]}"; do \
 
   # NOTE: Subshell here is intentional, the script was behaving badly otherwise
   # TODO: Prompt reinstall y/n/a
-  (brew install "$font" >> "$log" 2>&1)
+  brew install "$font" >> "$log" 2>&1
 
   printf '\033[2K\r  ⦿ %s\n' "$font"
 done
@@ -260,11 +254,9 @@ casks=(
   affinity-photo
   affinity-publisher
   alfred
-  # autodesk-fusion360
   # blender
   boom-3d
   caffeine
-  cakebrew
   daisydisk
   docker
   dozer
@@ -361,7 +353,7 @@ if [[ -d /Applications/Kitty.app ]] && [[ ! -d /Applications/Terminal.app ]] ; t
 
     printf '  ⦿ Force refreshing changes\n'
     sudo touch /Applications/Terminal.app
-    sudo killall Finder && sudo killall Dock
+    sudo -S killall Finder && sudo killall Dock
   else
     printf '  ⦿ Skipping the Kitty patch\n'
   fi
@@ -374,7 +366,7 @@ printf '\n'
 # ══════════════════════════════════════════════════════════════════════════════
 
 printf 'Antibody\n'
-printf '  ⦿ Configuring Zsh plugins\n'
+printf '  ⦿ Configuring Zsh plugins'
 antibody bundle < "$dotfiles_path"/stow/zsh/.zsh_plugins.txt > "$dotfiles_path"/stow/zsh/.zsh_plugins.sh
 
 printf '\n'
