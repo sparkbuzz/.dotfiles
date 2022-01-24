@@ -141,16 +141,15 @@ printf 'Homebrew\n'
 if ! command -v brew > /dev/null; then
   printf '  ◌ Installing Homebrew '
 
-  curl \
-    --fail \
-    --location \
-    --output $HOME/Downloads/install-brew.sh \
-    --remote-name https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh \
-    --show-error \
-    --silent
-    
-  chmod +x $HOME/Downloads/install-brew.sh
-  (NONINTERACTIVE=1 $HOME/Downloads/install-brew.sh >> "$log" 2>&1)
+  NONINTERACTIVE=1 \
+     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$log" 2>&1 &
+
+  # Wait for install.sh to finish
+  #
+  pid=$!
+  printf 'Waiting for process %s to finish...\n' "${pid}"
+  wait "$pid"
+  printf 'Process %s exited with status %s' "${pid}" "$?"
 
   printf '\033[2K\r  ⦿ Installing Homebrew\n'
 else
