@@ -141,16 +141,44 @@ printf 'Homebrew\n'
 if ! command -v brew > /dev/null; then
   printf '  ◌ Installing Homebrew '
 
-  NONINTERACTIVE=1 \
-     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$log" 2>&1 &
+  prefix='/usr/local'
 
-  # Wait for install.sh to finish
-  #
-  pid=$!
-  printf 'Waiting for process %s to finish...\n' "${pid}"
-  wait "$pid"
-  printf 'Process %s exited with status %s' "${pid}" "$?"
+  mkdir /tmp/homebrew
+  curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C /tmp/homebrew
+  sudo mv /tmp/homebrew $prefix/Homebrew
 
+  sudo mkdir -p \
+    ${prefix}/bin \
+    ${prefix}/Cellar \
+    ${prefix}/etc \
+    ${prefix}/Frameworks \
+    ${prefix}/include \
+    ${prefix}/lib \
+    ${prefix}/opt \
+    ${prefix}/sbin \
+    ${prefix}/share \
+    ${prefix}/var/homebrew/linked
+  
+  sudo chown -R $(whoami) \
+    ${prefix}/bin \
+    ${prefix}/Cellar \
+    ${prefix}/etc \
+    ${prefix}/Frameworks \
+    ${prefix}/HomeBrew \
+    ${prefix}/include \
+    ${prefix}/lib \
+    ${prefix}/opt \
+    ${prefix}/sbin \
+    ${prefix}/share \
+    ${prefix}/var
+
+  sudo ln -nfs ${prefix}/Homebrew/bin/brew ${prefix}/bin/brew
+  sudo chown -h $(whoami) ${prefix}/bin/brew
+
+  eval "$(${prefix}/bin/brew shellenv)"
+  brew update --force --quiet
+  chmod -R go-w "$(brew --prefix)/share/zsh"
+ 
   printf '\033[2K\r  ⦿ Installing Homebrew\n'
 else
   printf '  ⦿ Skipping, Homebrew already installed\n'
