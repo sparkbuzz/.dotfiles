@@ -254,7 +254,6 @@ casks=(
   affinity-photo
   affinity-publisher
   alfred
-  # blender
   boom-3d
   caffeine
   daisydisk
@@ -262,14 +261,11 @@ casks=(
   dozer
   evernote
   firefox
-  # freecad
   geektool
   gitkraken
   glance
   google-chrome
-  # kicad
   launchcontrol
-  libreoffice
   parallels
   slack
   whatsapp
