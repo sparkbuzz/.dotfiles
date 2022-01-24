@@ -222,6 +222,54 @@ done
 printf '\n'
 
 
+# Install Casks
+# ══════════════════════════════════════════════════════════════════════════════
+
+printf 'Installing Casks\n'
+
+casks=(
+  1password
+  affinity-designer
+  affinity-photo
+  affinity-publisher
+  alfred
+  # autodesk-fusion360
+  # blender
+  boom-3d
+  caffeine
+  cakebrew
+  daisydisk
+  docker
+  dozer
+  evernote
+  firefox
+  # freecad
+  geektool
+  gitkraken
+  glance
+  google-chrome
+  # kicad
+  launchcontrol
+  libreoffice
+  parallels
+  slack
+  whatsapp
+  xbar
+)
+
+for cask in "${casks[@]}"; do \
+  printf '  ◌ %s ' "$cask"
+
+  # NOTE: Subshell here is intentional, the script was behaving badly otherwise
+  # TODO: Prompt reinstall y/n/a
+  (brew install --cask "$cask" >> "$log" 2>&1)
+
+  printf '\033[2K\r  ⦿ %s\n' "$cask"
+done
+
+printf '\n'
+
+
 # Install Kitty
 # ══════════════════════════════════════════════════════════════════════════════
 
