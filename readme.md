@@ -1,4 +1,4 @@
-# sparkbuzz/devenv
+# sparkbuzz/dotfiles
 
 This is my .dotfiles setup, featuring Kitty terminal, Zsh and Neovim.
 
