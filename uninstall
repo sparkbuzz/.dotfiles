@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-# sparkbuzz/.dotfiles uninstall script
+# sparkbuzz/dotfiles uninstall script
 # ══════════════════════════════════════════════════════════════════════════════
 
 # set -x
@@ -8,11 +8,11 @@
 # Variables
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Destination path where .dotfiles will be extracted to
+# Destination path where dotfiles will be extracted to
 #
-dotfiles_path="${HOME}/Projects/sparkbuzz/.dotfiles"
+dotfiles_path="${HOME}/Projects/sparkbuzz/dotfiles"
 
-# Path to .dotfiles log file
+# Path to dotfiles log file
 #
 log='/var/log/dotfiles.log'
 
@@ -26,7 +26,7 @@ caffeinate -i -w $$ &
 
 # Prompt for certainty
 #
-printf "Proceed with uninstalling .dotfiles? [y/n] "
+printf "Proceed with uninstalling dotfiles? [y/n] "
 read -qr answer
 if [[ "$answer" == 'n' ]]; then
   printf '\nAborting, I'\''ll be here when you need me!\n'
@@ -176,7 +176,7 @@ for p in "${kitty_paths[@]}"; do
 done
 
 
-# Remove .dotfiles
+# Remove dotfiles
 # ══════════════════════════════════════════════════════════════════════════════
 
 if [[ -d "$dotfiles_path" ]]; then

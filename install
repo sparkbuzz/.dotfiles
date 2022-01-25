@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-# sparkbuzz/.dotfiles install script
+# sparkbuzz/dotfiles install script
 # ══════════════════════════════════════════════════════════════════════════════
 
 
@@ -9,15 +9,15 @@
 
 # Path where dotfiles is extracted to
 #
-dotfiles_tmp='/tmp/.dotfiles-master'
+dotfiles_tmp='/tmp/dotfiles-master'
 
 # Destination path where projects will reside
 #
 projects_path="${HOME}/Projects/sparkbuzz"
 
-# Destination path where .dotfiles will be moved to
+# Destination path where dotfiles will be moved to
 #
-dotfiles_path="${HOME}/Projects/sparkbuzz/.dotfiles"
+dotfiles_path="${HOME}/Projects/sparkbuzz/dotfiles"
 
 # Path where dotfiles archive is downloaded to
 #
@@ -25,9 +25,9 @@ dotfiles_zip='/tmp/dotfiles.zip'
 
 # URL from which the repository .zip archive is downloaded
 #
-download_url='https://github.com/sparkbuzz/.dotfiles/archive/refs/heads/master.zip'
+download_url='https://github.com/sparkbuzz/dotfiles/archive/refs/heads/master.zip'
 
-# Path to .dotfiles log file
+# Path to dotfiles log file
 #
 log='/var/log/dotfiles.log'
 
@@ -42,7 +42,7 @@ caffeinate -i -w $$ &
 # Check OS first, this repo is only expected to work on macOS.
 #
 if [[ $OSTYPE != 'darwin'* ]]; then
-  printf 'sparkbuzz/.dotfiles does not work with this OS! Aborting.\n'
+  printf 'sparkbuzz/dotfiles does not work with this OS! Aborting.\n'
   exit 1
 fi
 
@@ -65,10 +65,10 @@ sudo chown "$(whoami)":staff "$log"
 printf '\n'
 
 
-# Fetch and configure sparkbuzz/.dotfiles source from GitHub
+# Fetch and configure sparkbuzz/dotfiles source from GitHub
 # ══════════════════════════════════════════════════════════════════════════════
 
-printf 'Fetch and configure .dotfiles source\n'
+printf 'Fetch and configure dotfiles source\n'
 
 dotfiles_exists='n'
 
@@ -88,7 +88,7 @@ if [[ -d $dotfiles_path ]]; then
   fi
 fi
 
-# Download and extract source from sparkbuzz/.dotfiles
+# Download and extract source from sparkbuzz/dotfiles
 #
 if [[ $dotfiles_exists == 'n' ]] || [[ $overwrite_dotfiles_path == 'y' ]]; then
   # Check if dotfiles.zip has already been downloaded
@@ -114,7 +114,7 @@ if [[ $dotfiles_exists == 'n' ]] || [[ $overwrite_dotfiles_path == 'y' ]]; then
     printf '\033[2K\r  ⦿ Downloading %s\n' "$download_url"
   fi
 
-  # Extract the downloaded .dotfiles.zip archive
+  # Extract the downloaded dotfiles archive
   #
   if [[ ! -e $dotfiles_path ]]; then
     printf '  ⦿ Extracting %s to %s\n' "$dotfiles_zip" "$dotfiles_tmp"
@@ -371,7 +371,7 @@ printf '\n'
 # ══════════════════════════════════════════════════════════════════════════════
 
 printf '\nGNU Stow\n'
-printf '  ⦿ Stowing .dotfiles in %s\n' "$HOME"
+printf '  ⦿ Stowing dotfiles in %s\n' "$HOME"
 cd "$dotfiles_path"/stow || exit
 
 packages=(
